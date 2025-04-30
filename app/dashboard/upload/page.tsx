@@ -8,22 +8,58 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { Upload, X, Loader2 } from "lucide-react"
+import { Upload, X, Loader2, Text, Image } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import { BandScoreExplanation } from "@/components/band-score-explanation"
+import { Textarea } from "@/components/ui/textarea"
 
 export default function UploadPage() {
   const router = useRouter()
   const [taskType, setTaskType] = useState<string>("task1")
+  const [inputType, setInputType] = useState<"text" | "image">("text")
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState<boolean>(false)
   const [isProcessing, setIsProcessing] = useState<boolean>(false)
+  const [essayText, setEssayText] = useState<string>("")
+  const [generatedTopic, setGeneratedTopic] = useState<{ topic: string; type: string; instructions: string } | null>(null)
+  const [isGeneratingTopic, setIsGeneratingTopic] = useState<boolean>(false)
+
+  const generateTopic = async () => {
+    setIsGeneratingTopic(true)
+    try {
+      const response = await fetch("/api/generate-topic", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ taskType }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to generate topic")
+      }
+
+      const result = await response.json()
+      setGeneratedTopic(result)
+      toast({
+        title: "Topic generated!",
+        description: "A new topic has been generated for you to write about.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate topic. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsGeneratingTopic(false)
+    }
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
     if (selectedFile) {
-      // Check if file is an image
       if (!selectedFile.type.startsWith("image/")) {
         toast({
           title: "Invalid file type",
@@ -33,7 +69,6 @@ export default function UploadPage() {
         return
       }
 
-      // Check file size (max 5MB)
       if (selectedFile.size > 5 * 1024 * 1024) {
         toast({
           title: "File too large",
@@ -56,7 +91,6 @@ export default function UploadPage() {
     e.preventDefault()
     const droppedFile = e.dataTransfer.files?.[0]
     if (droppedFile) {
-      // Check if file is an image
       if (!droppedFile.type.startsWith("image/")) {
         toast({
           title: "Invalid file type",
@@ -66,7 +100,6 @@ export default function UploadPage() {
         return
       }
 
-      // Check file size (max 5MB)
       if (droppedFile.size > 5 * 1024 * 1024) {
         toast({
           title: "File too large",
@@ -95,7 +128,7 @@ export default function UploadPage() {
   }
 
   const handleSubmit = async () => {
-    if (!file) {
+    if (inputType === "image" && !file) {
       toast({
         title: "No file selected",
         description: "Please upload an image of your IELTS writing task",
@@ -104,33 +137,73 @@ export default function UploadPage() {
       return
     }
 
-    setIsUploading(true)
+    if (inputType === "text" && !essayText.trim()) {
+      toast({
+        title: "No text entered",
+        description: "Please enter your IELTS writing task",
+        variant: "destructive",
+      })
+      return
+    }
 
-    // Simulate file upload
-    setTimeout(() => {
+    setIsUploading(true)
+    setIsProcessing(false)
+
+    try {
+      const formData = new FormData()
+      if (inputType === "image") {
+        formData.append("image", file!)
+      } else {
+        formData.append("text", essayText)
+      }
+      formData.append("taskType", taskType)
+      formData.append("inputType", inputType)
+
+      const response = await fetch("/api/grade", {
+        method: "POST",
+        body: formData,
+      })
+
       setIsUploading(false)
       setIsProcessing(true)
 
-      // Simulate AI processing
-      setTimeout(() => {
+      if (!response.ok) {
+        const errorData = await response.json()
         setIsProcessing(false)
         toast({
-          title: "Grading complete!",
-          description: "Your IELTS writing task has been graded successfully.",
+          title: "Grading failed",
+          description: errorData.error || "An error occurred while grading your essay.",
+          variant: "destructive",
         })
-        router.push("/dashboard/results/new")
-      }, 3000)
-    }, 2000)
+        return
+      }
+
+      const result = await response.json()
+      setIsProcessing(false)
+      toast({
+        title: "Grading complete!",
+        description: "Your IELTS writing task has been graded successfully.",
+      })
+      router.push("/dashboard/results/new")
+    } catch (error) {
+      setIsUploading(false)
+      setIsProcessing(false)
+      toast({
+        title: "Network error",
+        description: "Failed to connect to the grading service.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-3xl font-bold tracking-tight mb-6">Upload IELTS Writing Task</h1>
+      <h1 className="text-3xl font-bold tracking-tight mb-6">IELTS Writing Task</h1>
 
       <Card>
         <CardHeader>
-          <CardTitle>Upload Your Answer</CardTitle>
-          <CardDescription>Upload a JPG image of your handwritten or typed IELTS writing task</CardDescription>
+          <CardTitle>Write Your Answer</CardTitle>
+          <CardDescription>Choose how you want to submit your IELTS writing task</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
@@ -155,97 +228,113 @@ export default function UploadPage() {
             </RadioGroup>
           </div>
 
-          {!preview ? (
-            <div
-              className="border-2 border-dashed rounded-lg p-12 text-center hover:bg-muted/50 transition-colors cursor-pointer"
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onClick={() => document.getElementById("file-upload")?.click()}
+          <div className="space-y-2">
+            <Label>Select Input Method</Label>
+            <RadioGroup
+              value={inputType}
+              onValueChange={(value: "text" | "image") => {
+                setInputType(value)
+                setFile(null)
+                setPreview(null)
+                setEssayText("")
+              }}
+              className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-6"
             >
-              <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-1">Upload your file</h3>
-              <p className="text-sm text-muted-foreground mb-4">Drag and drop or click to browse</p>
-              <p className="text-xs text-muted-foreground">JPG or PNG (max. 5MB)</p>
-              <input id="file-upload" type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="text" id="text" />
+                <Label htmlFor="text" className="font-normal">
+                  Type Directly
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="image" id="image" />
+                <Label htmlFor="image" className="font-normal">
+                  Upload Image
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <Label>Topic</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={generateTopic}
+                disabled={isGeneratingTopic}
+              >
+                {isGeneratingTopic ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  "Generate Topic"
+                )}
+              </Button>
+            </div>
+            {generatedTopic && (
+              <div className="p-4 bg-muted rounded-lg">
+                <h4 className="font-medium mb-2">{generatedTopic.topic}</h4>
+                <p className="text-sm text-muted-foreground">{generatedTopic.instructions}</p>
+              </div>
+            )}
+          </div>
+
+          {inputType === "text" ? (
+            <div className="space-y-2">
+              <Label>Your Answer</Label>
+              <Textarea
+                value={essayText}
+                onChange={(e) => setEssayText(e.target.value)}
+                placeholder="Type your answer here..."
+                className="min-h-[300px]"
+              />
             </div>
           ) : (
-            <div className="relative border rounded-lg overflow-hidden">
-              <Button variant="destructive" size="icon" className="absolute top-2 right-2 z-10" onClick={removeFile}>
-                <X className="h-4 w-4" />
-              </Button>
-              <img src={preview || "/placeholder.svg"} alt="Preview" className="w-full object-contain max-h-[400px]" />
-            </div>
+            <>
+              {!preview ? (
+                <div
+                  className="border-2 border-dashed rounded-lg p-12 text-center hover:bg-muted/50 transition-colors cursor-pointer"
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onClick={() => document.getElementById("file-upload")?.click()}
+                >
+                  <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-1">Upload your file</h3>
+                  <p className="text-sm text-muted-foreground mb-4">Drag and drop or click to browse</p>
+                  <p className="text-xs text-muted-foreground">JPG or PNG (max. 5MB)</p>
+                  <input id="file-upload" type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                </div>
+              ) : (
+                <div className="relative border rounded-lg overflow-hidden">
+                  <Button variant="destructive" size="icon" className="absolute top-2 right-2 z-10" onClick={removeFile}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <img src={preview || "/placeholder.svg"} alt="Preview" className="w-full object-contain max-h-[400px]" />
+                </div>
+              )}
+            </>
           )}
 
-          {taskType === "task1" && (
-            <div className="p-4 bg-muted rounded-lg">
-              <h4 className="font-medium mb-2">Task 1 Grading Criteria:</h4>
-              <div className="text-sm space-y-4 text-muted-foreground">
-                <div>
-                  <p className="font-medium">Task Achievement:</p>
-                  <ul className="list-disc pl-5 space-y-1 mt-1">
-                    <li>How well you address all parts of the task</li>
-                    <li>Presentation of a clear overview of main trends/features</li>
-                    <li>Highlighting and coverage of key features with appropriate detail</li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="font-medium">Coherence and Cohesion:</p>
-                  <ul className="list-disc pl-5 space-y-1 mt-1">
-                    <li>Logical organization of information and ideas</li>
-                    <li>Clear progression throughout</li>
-                    <li>Effective use of cohesive devices and paragraphing</li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="font-medium">Lexical Resource:</p>
-                  <ul className="list-disc pl-5 space-y-1 mt-1">
-                    <li>Range of vocabulary used and its precision</li>
-                    <li>Use of less common vocabulary items</li>
-                    <li>Accuracy in word choice, spelling and word formation</li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="font-medium">Grammatical Range and Accuracy:</p>
-                  <ul className="list-disc pl-5 space-y-1 mt-1">
-                    <li>Range of sentence structures</li>
-                    <li>Accuracy in grammar and punctuation</li>
-                    <li>Frequency of errors and their impact on communication</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {taskType === "task2" && (
-            <div className="p-4 bg-muted rounded-lg">
-              <h4 className="font-medium mb-2">Task 2 Grading Criteria:</h4>
-              <ul className="text-sm space-y-1 text-muted-foreground">
-                <li>• Task Response: How well you address all parts of the question</li>
-                <li>• Coherence and Cohesion: Organization and paragraph structure</li>
-                <li>• Lexical Resource: Vocabulary range and accuracy</li>
-                <li>• Grammatical Range and Accuracy: Sentence structure and grammar</li>
-              </ul>
-            </div>
-          )}
-
-          {taskType === "task1" && (
-            <div className="mt-4">
-              <BandScoreExplanation taskType="task1" />
-            </div>
-          )}
-
-          {taskType === "task2" && (
-            <div className="mt-4">
-              <BandScoreExplanation taskType="task2" />
-            </div>
-          )}
+          {taskType === "task1" && <BandScoreExplanation taskType="task1" />}
+          {taskType === "task2" && <BandScoreExplanation taskType="task2" />}
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSubmit} disabled={!file || isUploading || isProcessing} className="w-full gap-2">
-            {isUploading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isProcessing && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isUploading ? "Uploading..." : isProcessing ? "Processing with AI..." : "Grade My Writing"}
+          <Button
+            className="w-full"
+            onClick={handleSubmit}
+            disabled={isUploading || isProcessing || (!file && !essayText.trim())}
+          >
+            {isUploading || isProcessing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {isUploading ? "Uploading..." : "Processing..."}
+              </>
+            ) : (
+              "Submit for Grading"
+            )}
           </Button>
         </CardFooter>
       </Card>
