@@ -232,7 +232,40 @@ export function BandScoreExplanation({ taskType }: BandScoreExplanationProps) {
                 <AccordionTrigger>Task Response</AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-2 text-sm">
-                    <p>Task 2 response criteria will be displayed here.</p>
+                    <div>
+                      <p className="font-medium">Band 9</p>
+                      <p>• Fully addresses all parts of the task</p>
+                      <p>• Presents a fully developed position in answer to the question with relevant, fully extended and well supported ideas</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 8</p>
+                      <p>• Sufficiently addresses all parts of the task</p>
+                      <p>• Presents a well-developed response to the question with relevant, extended and supported ideas</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 7</p>
+                      <p>• Addresses all parts of the task</p>
+                      <p>• Presents a clear position throughout the response</p>
+                      <p>• Presents, extends and supports main ideas, but there may be a tendency to over-generalize and/or supporting ideas may lack focus</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 6</p>
+                      <p>• Addresses all parts of the task although some parts may be more fully covered than others</p>
+                      <p>• Presents a relevant position although the conclusions may become unclear or repetitive</p>
+                      <p>• Presents relevant main ideas but some may be inadequately developed/unclear</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 5</p>
+                      <p>• Addresses the task only partially</p>
+                      <p>• Expresses a position but the development is not always clear and there may be no conclusions drawn</p>
+                      <p>• Presents some main ideas but these are limited and not sufficiently developed; there may be irrelevant detail</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 4 and below</p>
+                      <p>• Responds to the task only in a minimal way or the answer is tangential</p>
+                      <p>• The position may be unclear</p>
+                      <p>• Presents few ideas, which are largely undeveloped or irrelevant</p>
+                    </div>
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -240,7 +273,39 @@ export function BandScoreExplanation({ taskType }: BandScoreExplanationProps) {
                 <AccordionTrigger>Coherence and Cohesion</AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-2 text-sm">
-                    <p>Task 2 coherence and cohesion criteria will be displayed here.</p>
+                    <div>
+                      <p className="font-medium">Band 9</p>
+                      <p>• Uses cohesion in such a way that it attracts no attention</p>
+                      <p>• Skillfully manages paragraphing</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 8</p>
+                      <p>• Sequences information and ideas logically</p>
+                      <p>• Manages all aspects of cohesion well</p>
+                      <p>• Uses paragraphing sufficiently and appropriately</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 7</p>
+                      <p>• Logically organizes information and ideas with clear progression</p>
+                      <p>• Uses a range of cohesive devices appropriately although there may be some under/over-use</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 6</p>
+                      <p>• Arranges information and ideas coherently with clear overall progression</p>
+                      <p>• Uses cohesive devices effectively, but cohesion within/between sentences may be faulty or mechanical</p>
+                      <p>• May not always use referencing clearly or appropriately</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 5</p>
+                      <p>• Presents information with some organization but may lack overall progression</p>
+                      <p>• Makes inadequate, inaccurate or over-use of cohesive devices</p>
+                      <p>• May be repetitive due to lack of referencing and substitution</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 4 and below</p>
+                      <p>• Presents information and ideas but these are not arranged coherently and there is no clear progression</p>
+                      <p>• Uses some basic cohesive devices but these may be inaccurate or repetitive</p>
+                    </div>
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -248,7 +313,39 @@ export function BandScoreExplanation({ taskType }: BandScoreExplanationProps) {
                 <AccordionTrigger>Lexical Resource</AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-2 text-sm">
-                    <p>Task 2 lexical resource criteria will be displayed here.</p>
+                    <div>
+                      <p className="font-medium">Band 9</p>
+                      <p>• Uses a wide range of vocabulary with very natural and sophisticated control of lexical features</p>
+                      <p>• Rare minor errors occur only as 'slips'</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 8</p>
+                      <p>• Uses a wide range of vocabulary fluently and flexibly to convey precise meanings</p>
+                      <p>• Skillfully uses uncommon lexical items but there may be occasional inaccuracies in word choice and collocation</p>
+                      <p>• Produces rare errors in spelling and/or word formation</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 7</p>
+                      <p>• Uses a sufficient range of vocabulary to allow some flexibility and precision</p>
+                      <p>• Uses less common lexical items with some awareness of style and collocation</p>
+                      <p>• May produce occasional errors in word choice, spelling and/or word formation</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 6</p>
+                      <p>• Uses an adequate range of vocabulary for the task</p>
+                      <p>• Attempts to use less common vocabulary but with some inaccuracy</p>
+                      <p>• Makes some errors in spelling and/or word formation, but they do not impede communication</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 5</p>
+                      <p>• Uses a limited range of vocabulary, but this is minimally adequate for the task</p>
+                      <p>• May make noticeable errors in spelling and/or word formation that may cause some difficulty for the reader</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 4 and below</p>
+                      <p>• Uses only basic vocabulary which may be used repetitively or which may be inappropriate for the task</p>
+                      <p>• Has limited control of word formation and/or spelling; errors may cause strain for the reader</p>
+                    </div>
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -256,7 +353,39 @@ export function BandScoreExplanation({ taskType }: BandScoreExplanationProps) {
                 <AccordionTrigger>Grammatical Range and Accuracy</AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-2 text-sm">
-                    <p>Task 2 grammatical range and accuracy criteria will be displayed here.</p>
+                    <div>
+                      <p className="font-medium">Band 9</p>
+                      <p>• Uses a wide range of structures with full flexibility and accuracy</p>
+                      <p>• Rare minor errors occur only as 'slips'</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 8</p>
+                      <p>• Uses a wide range of structures</p>
+                      <p>• The majority of sentences are error-free</p>
+                      <p>• Makes only very occasional errors or inappropriacies</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 7</p>
+                      <p>• Uses a variety of complex structures</p>
+                      <p>• Produces frequent error-free sentences</p>
+                      <p>• Has good control of grammar and punctuation but may make a few errors</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 6</p>
+                      <p>• Uses a mix of simple and complex sentence forms</p>
+                      <p>• Makes some errors in grammar and punctuation but they rarely reduce communication</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 5</p>
+                      <p>• Uses only a limited range of structures</p>
+                      <p>• Attempts complex sentences but these tend to be less accurate than simple sentences</p>
+                      <p>• May make frequent grammatical errors and punctuation may be faulty; errors can cause some difficulty for the reader</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Band 4 and below</p>
+                      <p>• Uses only a very limited range of structures with only rare use of subordinate clauses</p>
+                      <p>• Some structures are accurate but errors predominate, and punctuation is often faulty</p>
+                    </div>
                   </div>
                 </AccordionContent>
               </AccordionItem>

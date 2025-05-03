@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,17 +14,54 @@ import { Textarea } from "@/components/ui/textarea"
 
 export default function UploadPage() {
   const router = useRouter()
-  const [taskType, setTaskType] = useState<string>("task1")
   const [inputType, setInputType] = useState<"text" | "image">("text")
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState<boolean>(false)
   const [isProcessing, setIsProcessing] = useState<boolean>(false)
   const [essayText, setEssayText] = useState<string>("")
-  const [generatedTopic, setGeneratedTopic] = useState<{ topic: string; type: string; instructions: string } | null>(null)
   const [isGeneratingTopic, setIsGeneratingTopic] = useState<boolean>(false)
+  const [useCustomTopic, setUseCustomTopic] = useState<boolean>(false)
+  const [topics, setTopics] = useState<Array<{ topic: string; instructions: string }>>([])
+  const [selectedTopic, setSelectedTopic] = useState<{ topic: string; instructions: string } | null>(null)
+  const [topic, setTopic] = useState<string>("")
+  const [instructions, setInstructions] = useState<string>("")
 
-  const generateTopic = async () => {
+  useEffect(() => {
+    const generateInitialTopics = async () => {
+      setIsGeneratingTopic(true)
+      try {
+        const topicsPromises = Array(3).fill(null).map(() => 
+          fetch("/api/generate-topic", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }).then(res => res.json())
+        )
+        
+        const results = await Promise.all(topicsPromises)
+        setTopics(results)
+        setSelectedTopic(results[0])
+        toast({
+          title: "Topics generated!",
+          description: "Please select a topic to write about.",
+        })
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to generate topics. Please try again.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsGeneratingTopic(false)
+      }
+    }
+
+    generateInitialTopics()
+  }, [])
+
+  const generateMoreTopics = async () => {
     setIsGeneratingTopic(true)
     try {
       const response = await fetch("/api/generate-topic", {
@@ -33,7 +69,6 @@ export default function UploadPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ taskType }),
       })
 
       if (!response.ok) {
@@ -41,10 +76,10 @@ export default function UploadPage() {
       }
 
       const result = await response.json()
-      setGeneratedTopic(result)
+      setTopics(prev => [...prev, result])
       toast({
-        title: "Topic generated!",
-        description: "A new topic has been generated for you to write about.",
+        title: "New topic generated!",
+        description: "A new topic has been added to the list.",
       })
     } catch (error) {
       toast({
@@ -54,6 +89,13 @@ export default function UploadPage() {
       })
     } finally {
       setIsGeneratingTopic(false)
+    }
+  }
+
+  const removeTopic = (index: number) => {
+    setTopics(prev => prev.filter((_, i) => i !== index))
+    if (selectedTopic === topics[index]) {
+      setSelectedTopic(topics[0] || null)
     }
   }
 
@@ -128,6 +170,15 @@ export default function UploadPage() {
   }
 
   const handleSubmit = async () => {
+    if (!selectedTopic && !useCustomTopic) {
+      toast({
+        title: "No topic selected",
+        description: "Please select or enter a topic first",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (inputType === "image" && !file) {
       toast({
         title: "No file selected",
@@ -156,8 +207,10 @@ export default function UploadPage() {
       } else {
         formData.append("text", essayText)
       }
-      formData.append("taskType", taskType)
+      formData.append("taskType", "task2")
       formData.append("inputType", inputType)
+      formData.append("topic", useCustomTopic ? topic : selectedTopic!.topic)
+      formData.append("instructions", useCustomTopic ? instructions : selectedTopic!.instructions)
 
       const response = await fetch("/api/grade", {
         method: "POST",
@@ -198,139 +251,221 @@ export default function UploadPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-3xl font-bold tracking-tight mb-6">IELTS Writing Task</h1>
-
       <Card>
         <CardHeader>
-          <CardTitle>Write Your Answer</CardTitle>
-          <CardDescription>Choose how you want to submit your IELTS writing task</CardDescription>
+          <CardTitle>Upload IELTS Writing Task 2</CardTitle>
+          <CardDescription>Submit your essay for AI grading</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label>Select Task Type</Label>
-            <RadioGroup
-              value={taskType}
-              onValueChange={setTaskType}
-              className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-6"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="task1" id="task1" />
-                <Label htmlFor="task1" className="font-normal">
-                  Task 1 (Graph/Chart Description)
-                </Label>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">Input Type</h3>
+                <RadioGroup
+                  defaultValue="text"
+                  onValueChange={(value) => setInputType(value as "text" | "image")}
+                  className="flex space-x-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="text" id="text" />
+                    <Label htmlFor="text">Text</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="image" id="image" />
+                    <Label htmlFor="image">Image</Label>
+                  </div>
+                </RadioGroup>
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="task2" id="task2" />
-                <Label htmlFor="task2" className="font-normal">
-                  Task 2 (Essay)
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
 
-          <div className="space-y-2">
-            <Label>Select Input Method</Label>
-            <RadioGroup
-              value={inputType}
-              onValueChange={(value: "text" | "image") => {
-                setInputType(value)
-                setFile(null)
-                setPreview(null)
-                setEssayText("")
-              }}
-              className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-6"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="text" id="text" />
-                <Label htmlFor="text" className="font-normal">
-                  Type Directly
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="image" id="image" />
-                <Label htmlFor="image" className="font-normal">
-                  Upload Image
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium">Topic Selection</h3>
+                  <RadioGroup
+                    defaultValue="generate"
+                    onValueChange={(value) => setUseCustomTopic(value === "custom")}
+                    className="flex space-x-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="generate" id="generate" />
+                      <Label htmlFor="generate">Select from Generated Topics</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="custom" id="custom" />
+                      <Label htmlFor="custom">Custom Topic</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
 
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <Label>Topic</Label>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={generateTopic}
-                disabled={isGeneratingTopic}
-              >
-                {isGeneratingTopic ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
+                {!useCustomTopic ? (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-sm font-medium">Generated Topics</h4>
+                      <Button
+                        onClick={generateMoreTopics}
+                        disabled={isGeneratingTopic}
+                        variant="outline"
+                        size="sm"
+                      >
+                        {isGeneratingTopic ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Text className="mr-2 h-4 w-4" />
+                            Generate More
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {topics.map((topic, index) => (
+                        <div
+                          key={index}
+                          className={`p-3 rounded-lg border ${
+                            selectedTopic === topic
+                              ? "border-primary bg-primary/5"
+                              : "border-border"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div
+                              className="flex-1 cursor-pointer"
+                              onClick={() => setSelectedTopic(topic)}
+                            >
+                              <p className="font-medium">{topic.topic}</p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {topic.instructions}
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeTopic(index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 ) : (
-                  "Generate Topic"
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="topic">Topic</Label>
+                      <Textarea
+                        id="topic"
+                        value={topic}
+                        onChange={(e) => setTopic(e.target.value)}
+                        placeholder="Enter your topic here..."
+                        className="min-h-[100px]"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="instructions">Instructions</Label>
+                      <Textarea
+                        id="instructions"
+                        value={instructions}
+                        onChange={(e) => setInstructions(e.target.value)}
+                        placeholder="Enter task instructions here..."
+                        className="min-h-[100px]"
+                      />
+                    </div>
+                  </div>
                 )}
-              </Button>
-            </div>
-            {generatedTopic && (
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">{generatedTopic.topic}</h4>
-                <p className="text-sm text-muted-foreground">{generatedTopic.instructions}</p>
-              </div>
-            )}
-          </div>
 
-          {inputType === "text" ? (
-            <div className="space-y-2">
-              <Label>Your Answer</Label>
-              <Textarea
-                value={essayText}
-                onChange={(e) => setEssayText(e.target.value)}
-                placeholder="Type your answer here..."
-                className="min-h-[300px]"
-              />
-            </div>
-          ) : (
-            <>
-              {!preview ? (
+                {selectedTopic && !useCustomTopic && (
+                  <div className="bg-muted p-4 rounded-lg">
+                    <h4 className="font-medium">Selected Topic:</h4>
+                    <p className="text-sm text-muted-foreground">{selectedTopic.topic}</p>
+                    <h4 className="font-medium mt-2">Instructions:</h4>
+                    <p className="text-sm text-muted-foreground">{selectedTopic.instructions}</p>
+                  </div>
+                )}
+              </div>
+
+              {inputType === "image" ? (
                 <div
-                  className="border-2 border-dashed rounded-lg p-12 text-center hover:bg-muted/50 transition-colors cursor-pointer"
+                  className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
-                  onClick={() => document.getElementById("file-upload")?.click()}
                 >
-                  <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-1">Upload your file</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Drag and drop or click to browse</p>
-                  <p className="text-xs text-muted-foreground">JPG or PNG (max. 5MB)</p>
-                  <input id="file-upload" type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                  {preview ? (
+                    <div className="relative">
+                      <img
+                        src={preview}
+                        alt="Preview"
+                        className="max-h-64 mx-auto rounded-lg"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={removeFile}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Drag and drop your IELTS writing task image here, or click to
+                        select
+                      </p>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        id="file-upload"
+                      />
+                      <label
+                        htmlFor="file-upload"
+                        className="text-sm text-primary cursor-pointer hover:underline"
+                      >
+                        Select file
+                      </label>
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="relative border rounded-lg overflow-hidden">
-                  <Button variant="destructive" size="icon" className="absolute top-2 right-2 z-10" onClick={removeFile}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                  <img src={preview || "/placeholder.svg"} alt="Preview" className="w-full object-contain max-h-[400px]" />
+                <div className="space-y-2">
+                  <Label htmlFor="essay">Your Essay</Label>
+                  <Textarea
+                    id="essay"
+                    value={essayText}
+                    onChange={(e) => setEssayText(e.target.value)}
+                    placeholder="Type or paste your IELTS Writing Task 2 essay here..."
+                    className="min-h-[300px]"
+                  />
                 </div>
               )}
-            </>
-          )}
-
-          {taskType === "task1" && <BandScoreExplanation taskType="task1" />}
-          {taskType === "task2" && <BandScoreExplanation taskType="task2" />}
+            </div>
+          </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex justify-between">
           <Button
-            className="w-full"
-            onClick={handleSubmit}
-            disabled={isUploading || isProcessing || (!file && !essayText.trim())}
+            variant="outline"
+            onClick={() => router.push("/dashboard")}
           >
-            {isUploading || isProcessing ? (
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={isUploading || isProcessing}
+          >
+            {isUploading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isUploading ? "Uploading..." : "Processing..."}
+                Uploading...
+              </>
+            ) : isProcessing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Grading...
               </>
             ) : (
               "Submit for Grading"
@@ -338,6 +473,7 @@ export default function UploadPage() {
           </Button>
         </CardFooter>
       </Card>
+      <BandScoreExplanation />
     </div>
   )
 }
